@@ -17,7 +17,8 @@ double wmean (double x1, double x2, double p1, double p2); //media pesata per x1
 double swmean (double p1, double p2); //incertezza media pesata
 double fmax (TF1 *f1, double x); //trova il massimo valore possibile nel range di incertezze
 double fmin (TF1 *f1, double x); //trova il minimo valore possibile nel range di incertezze
-double swap (double &x, double &y); //scambia x e y
+void swap (double &x, double &y); //scambia x e y
+double ptosigma(double p); //converte p value in sigma
 
 void SideBands () {
 
@@ -57,22 +58,29 @@ void SideBands () {
     bkg->SetParError(0,swmean(bkgl->GetParError(0),bkgr->GetParError(0)));
     bkg->SetParError(1,swmean(bkgl->GetParError(1),bkgr->GetParError(1)));
 
+    double chi2 = chi2comp(hdata,bkg); 
+    double chi2max = chi2maxcomp(hdata,bkg); //non è il chi quadro massimo -> è quello corrispondente alla funzione massimizzata nel range di incertezze
+    double chi2min = chi2mincomp(hdata,bkg); //non è il minimo per lo stesso motivo
 
-    double chi2 = chi2comp(hdata,bkg);
-    double chi2max = chi2maxcomp(hdata,bkg);
-    double chi2min = chi2mincomp(hdata,bkg);
-
-    if (chi2max<chi2min) swap(chi2max,chi2min);
-
-    cout<<" \n ------------------------- \n CHI QUADRO OSSERVATO (BKG ONLY) = "<<chi2<<" (+ "<<TMath::Abs(chi2max-chi2)<<")(- "<<TMath::Abs(chi2-chi2min)<<") \n ------------------------- \n ";
+    cout<<" \n ------------------------- \n CHI QUADRO OSSERVATO (BKG ONLY) = "<<chi2<<" (+ "<<chi2max<<")(- "<<chi2min<<") \n ------------------------- \n ";
     
-    TF1 *pears = new TF1("pears","ROOT::Math::chisquared_pdf(x,[0])",chi2min*0.5,chi2max*hdata->GetNbinsX()); 
-    pears->SetParameter(0,hdata->GetNbinsX());
-    long double pval = pears->Integral(chi2,chi2max*hdata->GetNbinsX());
-    long double pvalmin = pears->Integral(chi2max,chi2max*hdata->GetNbinsX());
-    long double pvalmax = pears->Integral(chi2min,chi2max*hdata->GetNbinsX());
+    int dof = hdata->GetNbinsX();
 
-    cout<<" \n ------------------------- \n SIGNIFICATIVITA OSSERVATA (BKG ONLY) = "<<pval<<" (+ "<<pvalmax-pval<<")(- "<<pval-pvalmin<<") \n ------------------------- \n ";
+    double rangemax = dof*2;
+    double rangemin = dof*0.5;
+    TF1 *pears = new TF1("pears","ROOT::Math::chisquared_pdf(x,[0])",rangemin,rangemax); 
+    pears->SetParameter(0,dof);
+    pears->Draw(); 
+
+    double pval = 0.;
+    double pvalmin = 0.;
+    double pvalmax = 0.; 
+
+    if (chi2<rangemax) pval = pears->Integral(chi2,rangemax);
+    if (chi2max<rangemax) pvalmin = pears->Integral(chi2max,rangemax);
+    if (chi2min<rangemax) pvalmax = pears->Integral(chi2min,rangemax);
+
+    cout<<" \n ------------------------- \n SIGNIFICATIVITA OSSERVATA (BKG ONLY) = "<<pval<<" (+ "<<pvalmax<<")(- "<<pvalmin<<") \n SIGNIFICATIVITA OSSERVATA (BKG ONLY) = "<<ptosigma(pval)<<" (+ "<<ptosigma(pvalmax)<<")(- "<<ptosigma(pvalmin)<<") SIGMA \n ------------------------- \n ";
 
     if (pval<thr) cout<<" \n ------------------------- \n L'ECCESSO DI EVENTI DEPONE PER L'EFFETTIVA OSSERVAZIONE DI UN SEGNALE - SOGLIA = "<<thr<<" \n ------------------------- \n";
 
@@ -199,8 +207,8 @@ double fmax (TF1 *f1, double x) {
 
     for(double i = par0-spar0;i<=(par0+spar0);i=i+step0){
         for(double j=par1-spar1;j<=(par1+spar1);j=j+step1){
-            f1->SetParameter(0,i);
-            f1->SetParameter(1,j);
+            if (i>0) f1->SetParameter(0,i);
+            if (j>0) f1->SetParameter(1,j);
             double s = f1->Eval(x);
             if (s>r) r=s;
         }
@@ -226,6 +234,8 @@ double fmin (TF1 *f1, double x) {
 
     for(double i = par0-spar0;i<=par0+spar0;i=i+step0){
         for(double j=par1-spar1;j<=par1+spar1;j=j+step1){
+            if (i>0) f1->SetParameter(0,i);
+            if (j>0) f1->SetParameter(1,j);
             double s = f1->Eval(x);
             if (s<r) r=s;
         }
@@ -235,8 +245,30 @@ double fmin (TF1 *f1, double x) {
     
 }
 
-double swap (double &x, double &y) {
+void swap (double &x, double &y) {
+
     double t = x;
     x = y;
     y = t;
+
+}
+
+double ptosigma(double p) {
+
+    double rng = 50;
+    if (p==0) return rng; //non è apprezzabile
+    TF1 *f1 = new TF1("f1","gaus",-rng,rng);
+    double step = 0.001; //step della sigma
+    f1->SetParameters(1,0,1); //gaussiana centrata in 0 e con 1 dev std
+    double norm = f1->Integral(-rng,rng);
+    double x = 0.;
+    double prob = 1.;
+    while(prob>p) {
+        x = x + step;
+        prob = 1-f1->Integral(-x,x)/norm;
+        prob = prob/2.;
+    }
+    delete f1;
+    return x;
+
 }

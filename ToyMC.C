@@ -8,6 +8,7 @@ const int kIter = 1e6; //numero iterazioni del toy MC
 double expbkg (double x); //expected background
 double chi2comp (TH1D *h1); //chi2 computing
 double chi2sim (TH1D *h1); //chi2 computing
+double ptosigma (double p); //pvalue to sigma
 
 void ToyMC () {
 
@@ -42,16 +43,11 @@ void ToyMC () {
 
     //calcolo il p-value nella distribuzione simulata
     double pval = hsim->Integral(hsim->GetXaxis()->FindBin(chi2obs),hsimbins,"width");
-    cout<<" \n ------------------------- \n SIGNIFICATIVITA OSSERVATA = "<<pval<<" \n ------------------------- \n ";
+    cout<<" \n ------------------------- \n SIGNIFICATIVITA OSSERVATA = "<<pval<<" = "<<ptosigma(pval)<<" SIGMA  \n ------------------------- \n ";
 
     //traduzione in sigma della gaussiana a una coda
-    double psigma[10]={3/5.,1/3.,1/7.,1/22.,1/81.,1./370.,1./2149,1./15787,1./147160,1./1744278};
-    double sigma[10]={0.5,1.,1.5,2.,2.5,3,3.5,4.,4.5,5.};
-    int cnt = 0;
-    while(cnt<10 && pval<psigma[cnt]/2.) cnt++; //è diviso due perché fa riferimento a sigma a una coda
-    if (cnt>1) cout<<" \n ------------------------- \n "<<sigma[cnt-2]<<" SIGMA < SIGNIFICATIVITA < "<<sigma[cnt-1]<<" SIGMA \n ------------------------- \n ";
-    else if (cnt>0) cout<<" \n ------------------------- \n SIGNIFICATIVITA < "<<sigma[cnt-1]<<" SIGMA \n ------------------------- \n ";
-    else cout<<" \n ------------------------- \n SIGNIFICATIVITA > "<<sigma[0]<<" SIGMA \n ------------------------- \n ";
+    //double psigma[10]={3/5.,1/3.,1/7.,1/22.,1/81.,1./370.,1./2149,1./15787,1./147160,1./1744278};
+    //double sigma[10]={0.5,1.,1.5,2.,2.5,3,3.5,4.,4.5,5.};
 
 }
 
@@ -89,4 +85,24 @@ double chi2sim (TH1D *h1) { //chi2 simulation
     }
     return chi2;
     
+}
+
+double ptosigma(double p) {
+
+    double rng = 50;
+    if (p==0) return rng; //non è apprezzabile
+    TF1 *f1 = new TF1("f1","gaus",-rng,rng);
+    double step = 0.001; //step della sigma
+    f1->SetParameters(1,0,1); //gaussiana centrata in 0 e con 1 dev std
+    double norm = f1->Integral(-rng,rng);
+    double x = 0.;
+    double prob = 1.;
+    while(prob>p) {
+        x = x + step;
+        prob = 1-f1->Integral(-x,x)/norm;
+        prob = prob/2.;
+    }
+    delete f1;
+    return x;
+
 }
