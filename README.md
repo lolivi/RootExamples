@@ -1,7 +1,7 @@
 # RootExamples
 Some simple ROOT macros useful for data analysis and simulation
 
-## Excel to ROOT Analysis
+### Excel to ROOT Analysis
 The first three files (excelplot1, excelplot2 and excelplot3) are useful when data is taken on excel (or libreoffice) and then the analysis is performed on ROOT. 
 
 ### Saving Data
