@@ -22,3 +22,11 @@ The first three files (excelplot1, excelplot2 and excelplot3) are useful when da
   - It reads only one column of data and fills an histogram
 - #### excelplot4
   - It reads only two columns of data without uncertainties and fills a TGraph.
+
+### Analysis
+- #### ChiSq
+  - The output is the critical chi square given the DOF and Alpha in a one-sided test. Useful for very high DOF (tables not found online)
+- #### SideBands
+  - First, the background is fittet outside of the signal region. Then, the significance is computed to see if there really is a signal. Finally, a complete fit is performed with the drawings of all the single contributions.
+- #### ToyMC
+  - Sometimes, the ChiSquare is computed in histograms with less than 5 entries. MC Simulations are necessary to find the distribution of the computed ChiSquare (which is not Pearson, since n<5)
