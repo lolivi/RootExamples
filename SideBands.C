@@ -52,11 +52,20 @@ void SideBands () {
     //calcolo significance con ipotesi che ci sia solo il fondo
     TF1 *bkg = new TF1("bkgt","expo",0.,50.); //background totale
 
+    double par0l = bkgl->GetParameter(0);
+    double par0r = bkgr->GetParameter(0);
+    double par1l = bkgl->GetParameter(1);
+    double par1r = bkgr->GetParameter(1);
+    double spar0l = bkgl->GetParError(0);
+    double spar0r = bkgr->GetParError(0);
+    double spar1l = bkgl->GetParError(1);
+    double spar1r = bkgr->GetParError(1);
+
     //media pesata dei parametri del fondo
-    bkg->SetParameter(0,wmean(bkgl->GetParameter(0),bkgr->GetParameter(0),bkgl->GetParError(0),bkgr->GetParError(0)));
-    bkg->SetParameter(1,wmean(bkgl->GetParameter(1),bkgr->GetParameter(1),bkgl->GetParError(1),bkgr->GetParError(1)));
-    bkg->SetParError(0,swmean(bkgl->GetParError(0),bkgr->GetParError(0)));
-    bkg->SetParError(1,swmean(bkgl->GetParError(1),bkgr->GetParError(1)));
+    bkg->SetParameter(0,wmean(par0l,par0r,spar0l,spar0r));
+    bkg->SetParameter(1,wmean(par1l,par1r,spar1l,spar1r));
+    bkg->SetParError(0,swmean(spar0l,spar0r));
+    bkg->SetParError(1,swmean(spar1l,spar1r));
 
     double chi2 = chi2comp(hdata,bkg); 
     double chi2max = chi2maxcomp(hdata,bkg); //non è il chi quadro massimo -> è quello corrispondente alla funzione massimizzata nel range di incertezze
@@ -70,7 +79,7 @@ void SideBands () {
     double rangemin = dof*0.5;
     TF1 *pears = new TF1("pears","ROOT::Math::chisquared_pdf(x,[0])",rangemin,rangemax); 
     pears->SetParameter(0,dof);
-    pears->Draw(); 
+    //pears->Draw(); 
 
     double pval = 0.;
     double pvalmin = 0.;
@@ -92,11 +101,8 @@ void SideBands () {
     fit->SetParLimits(3,20,30); //media
     fit->SetParLimits(4,2,8); //sigma
 
-    //fissare automaticamente i parametri per il fondo totale
-    for(int i=0;i<=1;i++) {
-        fit->SetParameter(i,bkg->GetParameter(i));
-        //fit->SetParLimits(i,bkg->GetParameter(i)-0.2*bkg->GetParameter(i),bkg->GetParameter(i)+0.2*bkg->GetParameter(i));
-    }
+    bkg->SetParameter(0,wmean(par0l,par0r,spar0l,spar0r));
+    bkg->SetParameter(1,wmean(par1l,par1r,spar1l,spar1r));
 
     //fit totale
     hdata->Fit("fit","R0");
@@ -208,7 +214,7 @@ double fmax (TF1 *f1, double x) {
     for(double i = par0-spar0;i<=(par0+spar0);i=i+step0){
         for(double j=par1-spar1;j<=(par1+spar1);j=j+step1){
             if (i>0) f1->SetParameter(0,i);
-            if (j>0) f1->SetParameter(1,j);
+            f1->SetParameter(1,j);
             double s = f1->Eval(x);
             if (s>r) r=s;
         }
@@ -235,7 +241,7 @@ double fmin (TF1 *f1, double x) {
     for(double i = par0-spar0;i<=par0+spar0;i=i+step0){
         for(double j=par1-spar1;j<=par1+spar1;j=j+step1){
             if (i>0) f1->SetParameter(0,i);
-            if (j>0) f1->SetParameter(1,j);
+            f1->SetParameter(1,j);
             double s = f1->Eval(x);
             if (s<r) r=s;
         }
