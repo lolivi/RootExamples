@@ -12,6 +12,12 @@ The first three files (excelplot1, excelplot2 and excelplot3) are useful when da
 - Then, to save a file in Excel (or Libreoffice)
   - For LibreOffice -> SaveAs(".csv") -> Then choose "Blank Space" in "Field Separator" -> Write nothing on String Separator and Save
   - For Excel -> Go to Control Panel -> Regional Settings -> Additional Settings -> Change Field Separator
+
+### Reading Data
+- #### DataTree.py 
+  - It's a python macro which fills a TTree
+- #### ReadTree.C
+  - It reads a TTree and fills a TH1D
   
 ### Plotting
 - #### excelplot1
